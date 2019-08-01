@@ -1,0 +1,337 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "ORG DEMO base EC2 with two data volumes CFT ",
+	"Metadata": {
+		"Author": {
+			"Description": "Yingbo Li liyingbo999@gmail.com"
+		},
+		"Version": {
+			"Description": "Dec-14-2018 4.0"
+		},
+		"AppliesTo": {
+			"Description": "ORG"
+		}
+	},
+	"Parameters": {
+		"AppID": {
+			"Description": "The VSAD APPL ID for the application using this template.",
+			"Type": "String",
+			"Default": "DEMO"
+		},
+		"UserID": {
+			"Description": "The VZ ID of the person executing this template.",
+			"Type": "String",
+			"Default": "liyi2p7"
+		},
+		"Role": {
+			"Description": "The role, app, web or DB for this template.",
+			"Type": "String",
+			"Default": "App"
+		},
+		"BaseAMI": {
+			"Description": "AMI ID published on July 31, 2018 by democom",
+			"Type": "AWS::EC2::Image::Id",
+			"Default": "ami-0ccccccccddddddddc"
+		},
+		"IAMRole": {
+			"Description": "The IAM role to apply to the instance",
+			"Type": "String",
+			"Default": "VzPol-profile-NonProd-ORG-NP-DEMO-ir_ec2"
+		},
+		"InstanceName": {
+			"Description": "The desired name for the instance.",
+			"Type": "String",
+			"Default": "XY-ORG-DEMO-PROJ-DATA-PROCESS-NP"
+		},
+		"AvailabilityZone": {
+			"Description": "The availability zone where there instance is to be created.",
+			"Type": "String",
+			"Default": "us-east-1a"
+		},
+		"SubnetId": {
+			"Description": "The subnet ID where the instance is to be created.  This defines the VPC and the region.",
+			"Type": "String",
+			"Default": "subnet-26bd456e"
+		},
+		"KMSKey": {
+			"Description": "TheKMS Encryption key for this instance, which must have been created using VZPolicy.",
+			"Type": "String",
+			"Default": "arn:aws:kms:us-east-1:03333333333333:key/2ssssss8-e3aa-44b7-b1f9-03a3333333c"
+		},
+		"EbsOptimized": {
+			"Description": "The EBS Volumes should be optimized.  This is not supported on all instance types or availability zones.",
+			"Type": "String",
+			"Default": "false"
+		},
+		"DisableApiTermination": {
+			"Description": "Set this value to TRUE to disable the ability to terminate using the API.",
+			"Type": "String",
+			"Default": "false"
+		},
+		"InstanceType": {
+			"Description": "Select the Instance Type.  ",
+			"Type": "String",
+			"Default": "t2.small",
+			"ConstraintDescription": "must be a valid EC2 instance type."
+		},
+		"InfrastructureSG": {
+			"Description": "MASTER infrastructure Security group.",
+			"Type": "String",
+			"Default": "sg-6ssssss"
+		},
+		"HTTPSSG": {
+			"Description": "MASTER HTTPS Security group.",
+			"Type": "String",
+			"Default": "sg-b7f6ddddd9"
+		},
+		"HTTPSG": {
+			"Description": "MASTER HTTP Security group.",
+			"Type": "String",
+			"Default": "sg-ettttttd"
+		},
+		"SSHSG": {
+			"Description": "MASTER infrastructure Security group.",
+			"Type": "String",
+			"Default": "sg-9tttttteb"
+		},
+		"USERSG": {
+			"Description": "User defined Security Group.",
+			"Type": "String",
+			"Default": "sg-0basssssxxxx14a"
+		},
+		"ApplyNoStop": {
+			"Description": "Set to TRUE to apply the no_stop tag.",
+			"Type": "String",
+			"Default": "true"
+		},
+		"OS": {
+			"Description": "Enter the Operating System name.",
+			"Type": "String",
+			"Default": "CENTOS 7.5"
+		},
+		"VolumeBlockName1": {
+			"Description": "EBS Volume Block Device Name.",
+			"Type": "String",
+			"Default": "/dev/xvdb"
+		},
+		"VolumeSize1": {
+			"Description": "EBS Volume Block Device Size.",
+			"Type": "String",
+			"Default": "80"
+		},
+		"VolumeName1": {
+			"Description": "EBS Volume Name.",
+			"Type": "String",
+			"Default": "XY-ORG-DEMO-PROJ-DP-AVOL1"
+		},
+		"VolumeType": {
+			"Description": "EBS Volume Type.",
+			"Type": "String",
+			"Default": "gp2",
+			"AllowedValues": [
+				"gp2",
+				"io1",
+				"st1",
+				"sc1"
+			],
+			"ConstraintDescription": "must be a valid EBS Volume type."
+		}
+	},
+	"Resources": {
+		"ec2Instance": {
+			"Type": "AWS::EC2::Instance",
+			"Properties": {
+				"AvailabilityZone": {
+					"Ref": "AvailabilityZone"
+				},
+				"SubnetId": {
+					"Ref": "SubnetId"
+				},
+				"IamInstanceProfile": {
+					"Ref": "IAMRole"
+				},
+				"EbsOptimized": {
+					"Ref": "EbsOptimized"
+				},
+				"DisableApiTermination": {
+					"Ref": "DisableApiTermination"
+				},
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"ImageId": {
+					"Ref": "BaseAMI"
+				},
+				"SecurityGroupIds": [{
+						"Ref": "InfrastructureSG"
+					},
+					{
+						"Ref": "HTTPSG"
+					},
+					{
+						"Ref": "HTTPSSG"
+					},
+					{
+						"Ref": "SSHSG"
+					},
+					{
+						"Ref": "USERSG"
+					}
+				],
+				"Tags": [{
+						"Value": {
+							"Ref": "UserID"
+						},
+						"Key": "Userid"
+					},
+					{
+						"Value": {
+							"Ref": "AppID"
+						},
+						"Key": "Vsad"
+					},
+					{
+						"Value": {
+							"Ref": "InstanceName"
+						},
+						"Key": "Name"
+					},
+					{
+						"Value": {
+							"Ref": "Role"
+						},
+						"Key": "Role"
+					},
+					{
+						"Value": {
+							"Ref": "ApplyNoStop"
+						},
+						"Key": "nostop"
+					},
+					{
+						"Value": {
+							"Ref": "OS"
+						},
+						"Key": "OS"
+					},
+					{
+						"Value": "Version 4.0",
+						"Key": "CFT Version"
+					},
+					{
+						"Value": "liyingbo999@gmail.com",
+						"Key": "CFT Author"
+					}
+				]
+			}
+		},
+		"ebsVolume1": {
+			"Type": "AWS::EC2::Volume",
+			"DeletionPolicy": "Snapshot",
+			"Properties": {
+				"AvailabilityZone": {
+					"Ref": "AvailabilityZone"
+				},
+				"Tags": [{
+						"Value": {
+							"Ref": "VolumeName1"
+						},
+						"Key": "Name"
+					},
+					{
+						"Value": {
+							"Ref": "UserID"
+						},
+						"Key": "Userid"
+					},
+					{
+						"Value": {
+							"Ref": "AppID"
+						},
+						"Key": "Vsad"
+					},
+					{
+						"Value": {
+							"Ref": "InstanceName"
+						},
+						"Key": "Name"
+					},
+					{
+						"Value": {
+							"Ref": "Role"
+						},
+						"Key": "Role"
+					},
+					{
+						"Value": {
+							"Ref": "ApplyNoStop"
+						},
+						"Key": "nostop"
+					},
+					{
+						"Value": {
+							"Ref": "OS"
+						},
+						"Key": "OS"
+					},
+					{
+						"Value": "Version 4.0",
+						"Key": "CFT Version"
+					},
+					{
+						"Value": "liyingbo999@gmail.com",
+						"Key": "CFT Author"
+					}
+				],
+				"Encrypted" : "true",
+				"KmsKeyId": {
+				  "Ref": "KMSKey"
+				},
+				"VolumeType": {
+				  "Ref": "VolumeType"
+				},
+				"Size": {
+				  "Ref": "VolumeSize1"
+				}
+			  }
+		},
+		"ebsAttachment1": {
+		"Type": "AWS::EC2::VolumeAttachment",
+		"Properties": {
+        "InstanceId": {
+          "Ref": "ec2Instance"
+        },
+        "Device" : "/dev/xvdb",
+        "VolumeId": {
+          "Ref": "ebsVolume1"
+        }
+	  }
+	}
+  },
+	"Outputs": {
+		"InstanceId": {
+			"Description": "InstanceId of the newly created EC2 instance",
+			"Value": {
+				"Ref": "ec2Instance"
+			}
+		},
+		"AZ": {
+			"Description": "Availability Zone of the newly created EC2 instance",
+			"Value": {
+				"Fn::GetAtt": [
+					"ec2Instance",
+					"AvailabilityZone"
+				]
+			}
+		},
+		"PrivateIP": {
+			"Description": "PrivateIP of the newly created EC2 instance",
+			"Value": {
+				"Fn::GetAtt": [
+					"ec2Instance",
+					"PrivateIp"
+				]
+			}
+		}
+	}
+}

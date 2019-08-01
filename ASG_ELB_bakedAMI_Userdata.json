@@ -1,0 +1,571 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Demo ALB and ASG from Baked Tomcat/Apache AMI",
+	"Metadata": {
+		"Author": "Yingbo Li liyingbo999@gmail.com",
+		"Version": 2.0,
+		"AppliesTo": "ORG"
+	},
+	"Parameters": {
+		"Environment": {
+			"Description": "An environment name that will be prefixed to resource names",
+			"Type": "String",
+			"Default": "NonProd"
+		},
+		"InstanceType": {
+			"Description": "The instance type should we use to build the ECS cluster",
+			"Type": "String",
+			"Default": "t2.medium"
+		},
+		"VPC": {
+			"Description": "Choose which VPC this ECS cluster should be deployed to",
+			"Type": "AWS::EC2::VPC::Id",
+			"Default": "vpc-fa634f9c"
+		},
+		"InfrastructureSG": {
+			"Description": "MASTER infrastructure Security group.",
+			"Type": "AWS::EC2::SecurityGroup::Id",
+			"Default": "sg-6645cb19"
+		},
+		"HTTPSSG": {
+			"Description": "MASTER HTTPS Security group.",
+			"Type": "AWS::EC2::SecurityGroup::Id",
+			"Default": "sg-b7f69dc9"
+		},
+		"HTTPSG": {
+			"Description": "MASTER HTTP Security group.",
+			"Type": "AWS::EC2::SecurityGroup::Id",
+			"Default": "sg-e3qwerd"
+		},
+		"SSHSG": {
+			"Description": "MASTER SSH Security group.",
+			"Type": "AWS::EC2::SecurityGroup::Id",
+			"Default": "sg-9wsaawwb"
+		},
+		"TASG": {
+			"Description": "Security group for Tomcat/Apache ASG configuration.",
+			"Type": "AWS::EC2::SecurityGroup::Id",
+			"Default": "sg-0732sdafea257"
+		},
+		"ALBSG": {
+			"Description": "Security group for ALB.",
+			"Type": "AWS::EC2::SecurityGroup::Id",
+			"Default": "sg-0233rfdgfhjd78"
+		},
+		"IAMRole": {
+			"Description": "The IAM Role for this Action, which must have been created using VZPolicy.",
+			"Type": "String",
+			"Default": "XXPol-profile-NonProd-XYZ-NP-XXXX-ir_ec2"
+		},
+		"ApplyNoStop": {
+			"Description": "Set to TRUE to apply the no_stop tag.",
+			"Type": "String",
+			"Default": true
+		},
+		"CidrIp": {
+			"Description": "Set to value for the Env.",
+			"Type": "String",
+			"Default": "10.0.0.0/8"
+		},
+		"UserID": {
+			"Description": "The VZ ID of the person executing this template.",
+			"Type": "String",
+			"Default": "liyingbo"
+		},
+		"Role": {
+			"Description": "The role, app, web or DB for this template.",
+			"Type": "String",
+			"Default": "App"
+		},
+		"OS": {
+			"Description": "The Operating System used in EC2.",
+			"Type": "String",
+			"Default": "CentOS 7"
+		},
+		"LoadBalancerCertificateArn": {
+			"Description": "Amazon Resource Name (ARN) of the certificate to associate with the load balancer ORG-DEMO-webapp-sit.ebiz.democom.com.",
+			"Type": "String",
+			"Default": "arn:aws:acm:us-east-1:083333333334:certificate/7ddddd3c-sss-4c7b-xxxx3-2yyyy76d32"
+		},
+		"InstanceName": {
+			"Description": " Instance Name, here is autoscaling config name",
+			"Type": "String",
+			"Default": "XY-AAA-DEMO-SIT-TOMCAT-APACHE-SSO-01"
+		},
+		"BakedAMI": {
+			"Description": "AMI for ECS Host EC2 Instances.",
+			"Type": "String",
+			"Default": "ami-009sdfdferef892c27"
+		},
+		"AppID": {
+			"Type": "String",
+			"Default": "DEMO"
+		},
+		"KMSKey": {
+			"Description": "TheKMS Encryption key for this instance, which must have been created using VZPolicy.",
+			"Type": "String",
+			"Default": "arn:aws:kms:us-east-1:084309170734:key/4e54b46b-7fc9-4dab-89df-e7b4169b3f5b"
+		},
+		"LCName": {
+			"Description": "Lauch Configuration Name.",
+			"Type": "String",
+			"Default": "ORG-DEMO-TOMCAT-APACHE-SSO-CFG-SIT"
+		},
+		"ASGName": {
+			"Type": "String",
+			"Default": "ORG-DEMO-TOMCAT-APACHE-SSO-ASG-SIT"
+		},
+		"LBName": {
+			"Type": "String",
+			"Default": "ORG-DEMO-TOMCAT-APACHE-SSO-ALB-SIT"
+		},
+		"Name": {
+			"Type": "String",
+			"Default": "ORG-DEMO-TOMCAT-APACHE-SSO-ALB-ASG-SIT"
+		}
+	},
+
+
+	"Resources": {
+		"NotificationTopicTA": {
+			"Type": "AWS::SNS::Topic",
+			"Properties": {
+				"Subscription": [{
+					"Endpoint": "liyingbo@yahoo.com",
+					"Protocol": "email"
+				}]
+			}
+		},
+
+		"LauchConfigTA": {
+			"Type": "AWS::AutoScaling::LaunchConfiguration",
+			"Properties": {
+				"IamInstanceProfile": {
+					"Ref": "IAMRole"
+				},
+				"SecurityGroups": [{
+						"Ref": "InfrastructureSG"
+					},
+					{
+						"Ref": "HTTPSSG"
+					},
+					{
+						"Ref": "HTTPSG"
+					},
+					{
+						"Ref": "SSHSG"
+					},
+					{
+						"Ref": "TASG"
+					}
+				],
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"ImageId": {
+					"Ref": "BakedAMI"
+				},
+				"LaunchConfigurationName": {
+					"Ref": "LCName"
+				}, 
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": ["", ["#!/bin/bash -x \n",
+						    "# This userdata script only create html file \n",
+                            "echo '<html>' > /var/www/html/index.html \n",
+                            "echo '<head>' >> /var/www/html/index.html \n",
+							"echo '<body>' >> /var/www/html/index.html \n",
+							"echo '<h1>Hello World!</h1>' >> /var/www/html/index.html \n",
+							"echo '</body>' >> /var/www/html/index.html \n",
+							"echo '</html>' >> /var/www/html/index.html \n",
+						]]
+					}
+		        }
+			}
+		},
+
+		"ASGTomcatApache": {
+			"Type": "AWS::AutoScaling::AutoScalingGroup",
+			"Properties": {
+				"VPCZoneIdentifier": [
+					"subnet-aa282cf1",
+					"subnet-26bd456e"
+
+				],
+				"AvailabilityZones": ["us-east-1a", "us-east-1b"],
+				"MinSize": 2,
+				"MaxSize": 10,
+				"DesiredCapacity": 2,
+				"TargetGroupARNs": [{
+					"Ref": "TGApache"
+				}],
+				"LaunchConfigurationName": {
+					"Ref": "LauchConfigTA"
+				},
+				"Tags": [{
+						"Key": "ASGName",
+						"Value": {
+							"Ref": "ASGName"
+						},
+						"PropagateAtLaunch": true
+					},
+					{
+						"Key": "Userid",
+						"Value": {
+							"Ref": "UserID"
+						},
+						"PropagateAtLaunch": true
+					},
+					{
+						"Key": "Vsad",
+						"Value": {
+							"Ref": "AppID"
+						},
+						"PropagateAtLaunch": true
+					},
+					{
+						"Key": "Role",
+						"Value": {
+							"Ref": "Role"
+						},
+						"PropagateAtLaunch": true
+					},
+					{
+						"Key": "nostop",
+						"Value": {
+							"Ref": "ApplyNoStop"
+						},
+						"PropagateAtLaunch": true
+					},
+					{
+						"Key": "Name",
+						"Value": {
+							"Ref": "Name"
+						},
+						"PropagateAtLaunch": true
+					},
+					{
+						"Key": "Environment",
+						"Value": {
+							"Ref": "Environment"
+						},
+						"PropagateAtLaunch": true
+					}
+				],
+				"NotificationConfigurations": [{
+					"TopicARN": {
+						"Ref": "NotificationTopicTA"
+					},
+					"NotificationTypes": ["autoscaling:EC2_INSTANCE_LAUNCH",
+						"autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+						"autoscaling:EC2_INSTANCE_TERMINATE",
+						"autoscaling:EC2_INSTANCE_TERMINATE_ERROR"
+					]
+				}]
+
+			},
+
+			"CreationPolicy": {
+				"AutoScalingCreationPolicy": {
+					"MinSuccessfulInstancesPercent": 0
+				},
+				"ResourceSignal": {
+					"Timeout": "PT15M"
+				}
+			},
+			"UpdatePolicy": {
+				"AutoScalingRollingUpdate": {
+					"MinInstancesInService": 1,
+					"MaxBatchSize": 2,
+					"PauseTime": "PT15M",
+					"SuspendProcesses": [
+						"HealthCheck",
+						"ReplaceUnhealthy",
+						"AZRebalance",
+						"AlarmNotification",
+						"ScheduledActions"
+					],
+					"WaitOnResourceSignals": false
+				}
+			}
+		},
+
+		"scaleuppolicyTA": {
+			"Type": "AWS::AutoScaling::ScalingPolicy",
+			"Properties": {
+				"EstimatedInstanceWarmup": 60,
+				"AdjustmentType": "ChangeInCapacity",
+				"AutoScalingGroupName": {
+					"Ref": "ASGTomcatApache"
+				},
+				"PolicyType": "StepScaling",
+				"StepAdjustments": [{
+					"ScalingAdjustment": 1,
+					"MetricIntervalLowerBound": 0
+				}],
+				"MetricAggregationType": "Average"
+			}
+		},
+
+		"scaledownpolicyTA": {
+			"Type": "AWS::AutoScaling::ScalingPolicy",
+			"Properties": {
+				"EstimatedInstanceWarmup": 60,
+				"AdjustmentType": "ChangeInCapacity",
+				"AutoScalingGroupName": {
+					"Ref": "ASGTomcatApache"
+				},
+				"PolicyType": "StepScaling",
+				"StepAdjustments": [{
+					"ScalingAdjustment": -1,
+					"MetricIntervalUpperBound": 0
+				}],
+				"MetricAggregationType": "Average"
+			}
+		},
+
+		"cpualarmlowTA": {
+			"Type": "AWS::CloudWatch::Alarm",
+			"Properties": {
+				"ComparisonOperator": "LessThanThreshold",
+				"Dimensions": [{
+					"Name": "AutoScalingGroupName",
+					"Value": {
+						"Ref": "ASGTomcatApache"
+					}
+				}],
+				"EvaluationPeriods": 3,
+				"AlarmActions": [{
+					"Ref": "scaledownpolicyTA"
+				}],
+				"Threshold": 20,
+				"Statistic": "Average",
+				"AlarmDescription": "Alarm if CPU falls below CPUlow threshold for a sustained period of 60 seconds",
+				"Namespace": "AWS/EC2",
+				"Period": 60,
+				"MetricName": "CPUUtilization"
+			}
+		},
+		"cpualarmhighTA": {
+			"Type": "AWS::CloudWatch::Alarm",
+			"Properties": {
+				"ComparisonOperator": "GreaterThanThreshold",
+				"Dimensions": [{
+					"Name": "AutoScalingGroupName",
+					"Value": {
+						"Ref": "ASGTomcatApache"
+					}
+				}],
+				"EvaluationPeriods": 3,
+				"AlarmActions": [{
+					"Ref": "scaleuppolicyTA"
+				}],
+				"Threshold": 80,
+				"Statistic": "Average",
+				"AlarmDescription": "Alarm if CPU > CPUhigh threshold for a sustained period of 60 seconds",
+				"Namespace": "AWS/EC2",
+				"Period": 60,
+				"MetricName": "CPUUtilization"
+			}
+		},
+
+
+		"ALBTomcatApache": {
+			"Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+			"Properties": {
+				"Scheme": "internal",
+				"Subnets": ["subnet-0fcdbee30b245fa01", "subnet-05ce25edda9d7b3f9"],
+				"SecurityGroups": [{
+						"Ref": "InfrastructureSG"
+					},
+					{
+						"Ref": "HTTPSSG"
+					},
+					{
+						"Ref": "HTTPSG"
+					},
+					{
+						"Ref": "SSHSG"
+					},
+					{
+						"Ref": "ALBSG"
+					}
+				],
+				"Tags": [{
+						"Value": {
+							"Ref": "UserID"
+						},
+						"Key": "UserID"
+					},
+					{
+						"Value": {
+							"Ref": "AppID"
+						},
+						"Key": "Vsad"
+					},
+					{
+						"Value": {
+							"Ref": "Name"
+						},
+						"Key": "Name"
+					},
+					{
+						"Value": {
+							"Ref": "Role"
+						},
+						"Key": "Role"
+					},
+					{
+						"Key": "Environment",
+						"Value": {
+							"Ref": "Environment"
+						}
+					},
+					{
+
+						"Value": "Version1.2",
+						"Key": "ORG Pipeline"
+					}
+				]
+			}
+		},
+
+
+		"ALBListenerApache24": {
+			"Type": "AWS::ElasticLoadBalancingV2::Listener",
+			"Properties": {
+				"Certificates": [{
+					"CertificateArn": {
+						"Ref": "LoadBalancerCertificateArn"
+					}
+				}],
+				"DefaultActions": [{
+					"Type": "forward",
+					"TargetGroupArn": {
+						"Ref": "TGApache"
+					}
+				}],
+				"LoadBalancerArn": {
+					"Ref": "ALBTomcatApache"
+				},
+				"Port": 443,
+				"Protocol": "HTTPS",
+				"SslPolicy": "ELBSecurityPolicy-TLS-1-2-2017-01"
+			}
+		},
+
+
+		"ALBApache24ListenerRule": {
+			"Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+			"DependsOn": "ALBListenerApache24",
+			"Properties": {
+				"Actions": [{
+					"Type": "forward",
+					"TargetGroupArn": {
+						"Ref": "TGApache"
+					}
+				}],
+				"Conditions": [{
+					"Field": "path-pattern",
+					"Values": ["/"]
+				}],
+				"ListenerArn": {
+					"Ref": "ALBListenerApache24"
+				},
+				"Priority": 2
+			}
+		},
+
+
+
+		"TGApache": {
+			"Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+			"DependsOn": "ALBTomcatApache",
+			"Properties": {
+				"TargetType": "instance",
+				"HealthCheckIntervalSeconds": 30,
+				"HealthCheckPath": "/",
+				"HealthCheckProtocol": "HTTP",
+				"HealthCheckTimeoutSeconds": 10,
+				"HealthyThresholdCount": 3,
+				"Name": "TGApache",
+				"Protocol": "HTTP",
+				"Port": 80,
+				"UnhealthyThresholdCount": 5,
+				"TargetGroupAttributes": [{
+					"Key": "deregistration_delay.timeout_seconds",
+					"Value": "20"
+					},
+					{"Key": "stickiness.enabled",
+					 "Value": true
+					},
+					{"Key": "stickiness.type",
+					 "Value": "lb_cookie"
+					},
+					{"Key": "stickiness.lb_cookie.duration_seconds",
+					 "Value": "604800"
+				    }
+				],
+				"Tags": [{
+						"Value": {
+							"Ref": "UserID"
+						},
+						"Key": "UserID"
+					},
+					{
+						"Value": {
+							"Ref": "AppID"
+						},
+						"Key": "Vsad"
+					},
+					{
+						"Value": {
+							"Ref": "Name"
+						},
+						"Key": "Name"
+					},
+					{
+						"Value": {
+							"Ref": "Role"
+						},
+						"Key": "Role"
+					},
+					{
+						"Key": "Environment",
+						"Value": {
+							"Ref": "Environment"
+						}
+					},
+					{
+
+						"Value": "Version1.2",
+						"Key": "ORG Pipeline"
+					}
+				],
+				"VpcId": {
+					"Ref": "VPC"
+				}
+			}
+		}
+
+
+	},
+
+	"Outputs": {
+		"ASGTomcatApache": {
+			"Description": "AutoScalingGroup Name",
+			"Value": {
+				"Ref": "ASGTomcatApache"
+			}
+		},
+		"ALBTomcatApache": {
+			"Description": "DNS Name of ELB",
+			"Value": {
+				"Fn::GetAtt": [
+					"ALBTomcatApache",
+					"DNSName"
+				]
+			}
+		}
+	}
+}

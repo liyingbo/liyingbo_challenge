@@ -1,0 +1,385 @@
+-
+  gather_facts: true
+  hosts: all
+  tasks:
+#########################install JRE and Tomcat ######################
+    - name: use aws configure to automatically setup credentials, set up default output
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: aws configure list
+
+    - name: download tomcat to local directory
+      become: true
+      become_method: pbrun
+      become_user: root
+      command:  'wget  --no-cookies --no-check-certificate  "http://mirrors.advancedhosters.com/apache/tomcat/tomcat-7/v7.0.90/bin/apache-tomcat-7.0.90.tar.gz" -P /apps/opt'
+      environment:
+        NO_PROXY: "localhost,127.0.0.1,.verizon.com,169.254.169.254"
+        http_proxy: "http://proxy.ebiz.verizon.com:80"
+        https_proxy: "http://proxy.ebiz.verizon.com:80"
+
+    - name: Downloaded JRE to EC2.
+      become: true
+      become_method: pbrun
+      become_user: root
+      command:  'wget --no-cookies --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/8u181-b13/96a7b8442fe848ef90c96a2fad6ed6d1/jre-8u181-linux-x64.rpm" -P /apps/opt'
+      environment:
+        NO_PROXY: "localhost,127.0.0.1,.verizon.com,169.254.169.254"
+        http_proxy: "http://proxy.ebiz.verizon.com:80"
+        https_proxy: "http://proxy.ebiz.verizon.com:80"
+
+    - name: check file systems and mount points
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: df -k
+
+    - name: Change JRE permissions to 755
+      become: true
+      become_method: pbrun
+      become_user: root
+      file:
+        mode: 0755
+        path: /apps/opt/jre-8u181-linux-x64.rpm
+
+    - name: Change tomcat permissions to 755
+      become: true
+      become_method: pbrun
+      become_user: root
+      file:
+        mode: 0755
+        path: /apps/opt/apache-tomcat-7.0.90.tar.gz
+
+    - name: Install JRE 1.8.1.
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'rpm -ihv /apps/opt/jre-8u181-linux-x64.rpm'
+      args:
+        warn: false
+      register: rpm_install
+      failed_when: rpm_install.rc != 0 and "is already installed" not in rpm_install.stderr
+      changed_when: rpm_install.rc == 0
+
+    - name: Tar to exact files to install tomcat
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: "tar -xzvf /apps/opt/apache-tomcat-7.0.90.tar.gz  -C /tmp"
+
+    - name: change home directory of tomcat
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: mv /tmp/apache-tomcat-7.0.90   /apps/opt/application/tomcat
+
+    - name: edit /root/.bashrc file, change home directory variable
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+        path: /root/.bashrc
+        line: 'export CATALINA_HOME=/apps/opt/application/tomcat/'
+
+    - name: run the /root/.bashrc script to add the new environment variable
+      become: true
+      become_method: pbrun
+      become_user: root
+      shell: source /root/.bashrc
+
+ ########################create tomcat serive file, to make tomcat service start at boot #######################
+
+    - name: create file tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile: dest=/etc/systemd/system/tomcat.service
+       regexp='^' line=''
+       state=present
+       create=True
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: '[Unit]'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'Description=tomcat Management Service'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'After=syslog.target network.target'
+
+    - name: add an empty line
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       dest: /etc/systemd/system/tomcat.service
+       line: "{{ item }}"
+       insertbefore: EOF
+      with_items:
+      - "\n"
+
+    - name: edit file /etc/systemd/system/tomcat.service.
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: '[Service]'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'Type=forking'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'User=root'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'Group=root'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'WorkingDirectory=/apps/opt/application/tomcat/work'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'Environment="JAVA_HOME=/usr/java/jre1.8.0_181-amd64"'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'Environment="CATALINA_HOME=/apps/opt/application/tomcat/"'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'ExecStart=/apps/opt/application/tomcat/bin/startup.sh'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'ExecStop=/apps/opt/application/tomcat/bin/shutdown.sh'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'RemainAfterExit=no'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'Restart=on-failure'
+
+    - name: add an empty line
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       dest: /etc/systemd/system/tomcat.service
+       line: "{{ item }}"
+       insertbefore: EOF
+      with_items:
+      - "\n"
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: '[Install]'
+
+    - name: edit file /etc/systemd/system/tomcat.service
+      become: true
+      become_method: pbrun
+      become_user: root
+      lineinfile:
+       path: /etc/systemd/system/tomcat.service
+       line: 'WantedBy=multi-user.target'
+
+#####################create crontab job, download and extract scripts directory################################
+    - name: create group vzpsadm
+      become: true
+      become_method: pbrun
+      become_user: root
+      group:
+        name: vzpsadm
+        state: present
+
+    - name: create user vzpsadm
+      become: true
+      become_method: pbrun
+      become_user: root
+      user:
+        name: vzpsadm
+        group: vzpsadm
+        shell: /bin/bash
+
+    - name: create subdirectory /home/vzpsadm/uiam_repo
+      become: true
+      become_method: pbrun
+      become_user: root
+      file:
+        path: /home/vzpsadm/uiam_repo
+        state: directory
+
+    - name: cd /home/vzpsadm/uiam_repo
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: cd /home/vzpsadm/uiam_repo
+
+    - name: cp scripts.gz from S3
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: aws s3 cp s3://vz-app-nts-nt4v-non-prod-nts-nt4v-s3-4-s3bucket/cft/scripts.gz  /home/vzpsadm/uiam_repo/scripts.gz
+
+    - name: extract script.gz
+      become: true
+      become_method: pbrun
+      become_user: root
+      unarchive:
+        copy: no
+        src: "/home/vzpsadm/uiam_repo/scripts.gz"
+        dest: /home/vzpsadm/uiam_repo
+        owner: root
+        group: root
+
+    - name: add one line at crontab
+      become: true
+      become_method: pbrun
+      become_user: root
+      shell: '(crontab -l 2>/dev/null || true; echo "*/5 * * * * /home/vzpsadm/uiam_repo/scripts/monitorS2SvcHealth.sh > /home/vzpsadm/uiam_repo/scripts/cron_monitor_s2_svc.log") | crontab - '
+
+    - name: cp scripts.gz from S3
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: crontab -l
+
+################systemd scan, enable, stop, start, and check status###############
+
+    - name: use deamon-reload to scan the change of tomcat.service file
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'systemctl daemon-reload'
+
+    - name: Wait 3 seconds for tomcat service to start.
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'sleep 3'
+
+    - name:  systemd to enable tomcat service, to make sure tomcat service can be started at next reboot
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'systemctl enable tomcat'
+
+    - name: Wait 3 seconds for tomcat service to start.
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'sleep 3'
+
+    - name: systemd to stop tomcat service
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'systemctl stop tomcat'
+
+    - name: Wait 3 seconds for tomcat service to start.
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'sleep 3'
+
+    - name: systemd to start tomcat service
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'systemctl start tomcat'
+
+    - name: Wait 3 seconds for tomcat service to start.
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'sleep 3'
+
+    - name: netstat to check if the tomcat is ready.
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: "netstat -tulpn"
+
+    - name: systemd to check the status of tomcat service
+      become: true
+      become_method: pbrun
+      become_user: root
+      shell: "ps -ef |grep tomcat"
+
+    - name: systemd to start tomcat service
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'systemctl start tomcat'
+
+    - name: Wait 3 seconds for tomcat service to start.
+      become: true
+      become_method: pbrun
+      become_user: root
+      command: 'sleep 3'

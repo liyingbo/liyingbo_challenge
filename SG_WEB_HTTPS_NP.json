@@ -1,0 +1,345 @@
+{
+
+	"AWSTemplateFormatVersion": "2010-09-09",
+
+
+
+	"Description": "Create DB Security Group",
+
+
+
+	"Parameters": {
+
+		"VpcId": {
+			"Default": "vpc-fa634f9c",
+
+			"Description": "VPC ID",
+
+			"Type": "AWS::EC2::VPC::Id"
+
+		},
+		"Name" : {
+			"Description" : "The name of the Security Group",
+			"Type" : "String",
+			"Default": "SG-NTS-NT4V-WEB-HTTPS-NP"
+		},
+		"UserID" : {
+			"Description" : "The domain id of the resource owner",
+			"Type" : "String",
+			"Default": "liyi2p7"
+		},
+		"AppID" : {
+			"Description" : "The 4-character alpha-numeric ApplID code from VAST-APM",
+			"Type" : "String",
+			"AllowedPattern" : "[A-Z0-9]{4}",
+			"Default": "NT4V"
+		},
+		"Role" : {
+			"Description" : "The role of the instances that will be deployed",
+			"Type" : "String",
+			"Default" : "Web",
+			"AllowedValues" : ["Web","DB","App"]
+		},
+		"Environment" : {
+			"Description" : "The name of the environment",
+			"Type" : "String",
+			"Default" : "NonProd",
+			"AllowedValues" : ["NonProd","Prod"]
+		}
+	},
+
+
+
+	"Resources": {
+
+		"SgWeb": {
+
+			"Type": "AWS::EC2::SecurityGroup",
+
+			"Properties": {
+
+				"GroupDescription": "DB Security Group",
+
+				"VpcId": {
+
+					"Ref": "VpcId"
+
+				},
+
+				"SecurityGroupIngress": [{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "10.0.0.0/8"
+
+				},
+								
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "101.0.0.0/8"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "104.0.0.0/7"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "106.0.0.0/8"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "112.0.0.0/7"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "114.0.0.0/8"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "128.0.0.0/4"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "136.151.195.0/24"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "137.188.106.0/24"
+
+				},
+				
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "143.91.70.0/24"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "144.0.0.0/6"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "148.0.0.0/8"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "149.0.0.0/24"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "153.114.0.0/16"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "159.0.0.0/8"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "160.0.0.0/3"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "192.0.0.0/4"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "208.0.0.0/8"
+
+				},
+				{
+
+					"IpProtocol": "tcp",
+
+					"FromPort": "443",
+
+					"ToPort": "443",
+
+					"CidrIp": "71.0.0.0/8"
+
+				}
+				
+				],
+
+				"SecurityGroupEgress": [{
+
+					"IpProtocol": "-1",
+
+					"CidrIp": "0.0.0.0/0"
+
+				}],
+
+				"Tags":  [
+					{
+                    "Key": "Name",
+                    "Value": {"Ref": "Name" }
+					}, 
+					{
+                    "Key": "Organization",
+                    "Value": "NTS"
+					},
+					{
+                    "Key": "Vsad",
+                    "Value": {"Ref": "AppID" }
+					},
+				
+					{
+                    "Key": "UserId",
+                    "Value": {"Ref": "UserID" }
+					},
+					{
+                    "Key": "Role",
+                    "Value": {"Ref": "Role" }
+					},
+					{
+                    "Key": "Environment",
+                    "Value": { "Ref" : "Environment"}
+					}
+				
+				]
+
+
+
+			}
+
+		}
+
+	},
+
+
+
+	"Outputs": {
+
+
+		"SgWebId": {
+
+			"Value": {
+
+				"Ref": "SgWeb"
+
+			}
+
+		}
+
+	}
+
+}
